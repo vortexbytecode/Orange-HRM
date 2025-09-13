@@ -1,0 +1,24 @@
+---
+config:
+  theme: dark
+  look: classic
+---
+flowchart TD
+    A["Start: Pydantic looks for a setting"] --> B{"Value provided directly<br>in class instantiation?"}
+    B -- "Yes<br><span style=padding-left:>settings = EnvConfig(username=alice)</span>" --> C["Use the value<br>from the argument"]
+    B -- No --> D{"System/CI Environment<br>Variable exists?"}
+    D -- "Yes<br>OS or CI/CD environment variables (<code data-start=818 data-end=849>export ORANGEHRM_USERNAME=...</code>)." --> E["Use the value<br>from the ENV variable"]
+    D -- No --> F{"Dotenv (.env) file<br>contains the setting?"}
+    F -- "Yes<br><span style=padding-left:>ORANGEHRM_USERNAME=alice<br></span><span style=padding-left:>ORANGEHRM_PASSWORD=secret</span>" --> G["Use the value<br>from the .env file"]
+    F -- No --> H{"Secrets Directory<br>has the secret file?"}
+    H -- "Yes<br><span style=padding-left:>/var/run/secrets/username<br></span><span style=padding-left:>/var/run/secrets/password</span>" --> I["Use the value<br>from the secrets file"]
+    H -- No --> J{"Field in Pydantic<br>model has a default?"}
+    J -- "Yes<br><span style=padding-left:>class EnvConfig(BaseSettings):</span><span style=padding-left:> <br>explicit_wait: int = 10</span>" --> K["Use the default<br>value from the field"]
+    J -- "No</br><span style=padding-left: 8px; padding-right: 8px; justify-content: center;>ValidationError: username</span><span style=padding-left: 8px; padding-right: 8px; justify-content: center;>field required (type=value_error.missing)</span>" --> L["ValidationError<br>(if field is required)"]
+    C --> M["End"]
+    E --> M
+    G --> M
+    I --> M
+    K --> M
+    L --> M
+    A@{ shape: rounded}

@@ -1,0 +1,73 @@
+---
+config:
+  theme: neo-dark
+  layout: dagre
+---
+flowchart TD
+ subgraph s1["config/"]
+        n3["dev.json"]
+        n4["staging.json"]
+        n5["prod.json"]
+  end
+    A@{ label: "<div style=\"color:\"><span style=\"color:\">Test Suite Start</span></div>" } --> B@{ label: "<span style=\"color:\">Configuration Layer Init</span>" }
+    B --> C@{ label: "<span style=\"color:\">Pydantic EnvConfig<br>get_dot_env_secrets()</span>" } & D@{ label: "<span style=\"color:\">JSON Config Loader</span><br style=\"--tw-scale-x:\"><span style=\"color:\">Session-scoped pytest fixture</span>" }
+    D --> n1@{ label: "<span style=\"color:\">pytest --env CLI argument</span>" }
+    n1 --> n2@{ label: "<span style=\"color:\">Environment Selection</span>" }
+    n2 -- dev(default) --> n3
+    n2 -- staging --> n4
+    n2 -- prod --> n5
+    n3 --> n6@{ label: "<span style=\"color:\">Pytest fixture + importlib.resource + json.loads() parsing</span>" }
+    n4 --> n6
+    n5 --> n6
+    n6 --> n17["Type Safety via Enum"]
+    n9["Priority"] --> n10["Local"] & n11["CI/CD"]
+    n10 -- "<b style=color:>Highest</b>" --> n12@{ label: "<span style=\"color:\">System Environment </span>" }
+    n10 -- lowest --> n14[".env File"]
+    n11 -- "<span style=font-weight:>Highest</span>" --> n15["Secrets Vars"]
+    n12 --> n16@{ label: "<span style=\"color:\">Validated Secrets</span>" }
+    n14 --> n16
+    n15 --> n16
+    n17 --> n7@{ label: "<span style=\"color:\">Session-scoped caching<br>(pytest handles lifecycle)</span>" }
+    n7 --> n8@{ label: "<span style=\"color:\">Test Function Execution</span>" }
+    C --> n9
+    n16 -- "<span style=background-color:>Success</span>" --> n18@{ label: "<span style=\"color:\">@lru_cache(maxsize=1)<br>Single instance cached</span>" }
+    n18 --> n8
+    A@{ shape: stadium}
+    B@{ shape: div-proc}
+    C@{ shape: rect}
+    D@{ shape: rect}
+    n1@{ shape: rect}
+    n2@{ shape: diam}
+    n6@{ shape: rect}
+    n9@{ shape: diam}
+    n12@{ shape: rect}
+    n16@{ shape: rect}
+    n7@{ shape: rect}
+    n8@{ shape: rect}
+    n18@{ shape: rect}
+     n3:::Rose
+     n4:::Rose
+     n5:::Rose
+     A:::Sky
+     B:::Aqua
+     C:::Sky
+     D:::Rose
+     n1:::Rose
+     n2:::Rose
+     n6:::Rose
+     n17:::Rose
+     n9:::Sky
+     n10:::Sky
+     n11:::Sky
+     n12:::Sky
+     n14:::Sky
+     n15:::Sky
+     n16:::Sky
+     n7:::Rose
+     n8:::Pine
+     n18:::Sky
+    classDef Aqua stroke-width:1px, stroke-dasharray:none, stroke:#46EDC8, fill:#DEFFF8, color:#378E7A
+    classDef Pine stroke-width:1px, stroke-dasharray:none, stroke:#254336, fill:#27654A, color:#FFFFFF
+    classDef Rose stroke-width:1px, stroke-dasharray:none, stroke:#FF5978, fill:#FFDFE5, color:#8E2236
+    classDef Sky stroke-width:1px, stroke-dasharray:none, stroke:#374D7C, fill:#E2EBFF, color:#374D7C
+

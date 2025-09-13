@@ -1,0 +1,113 @@
+name: Security Scan Workflow
+
+on:
+    push:
+        branches:
+            - main
+            - develop
+        paths:
+            - 'src/**'
+            - 'tests/**'
+            - 'pyproject.toml'
+            - 'pytest.ini'
+            - '.python-version'
+            - 'uv.lock'
+
+    pull_request:
+        branches:
+            - main
+
+    schedule:
+        - cron: '0 0 1 * *'  # Runs at midnight on the first day of every month.
+
+    workflow_dispatch:
+        inputs:
+            branch:
+                description: 'Branch to run the workflow on'
+                required: false
+                default: 'main'
+
+concurrency:
+    group: security-scan-${{ github.ref }}
+    cancel-in-progress: true
+
+env:
+  PYTHON_VERSION_FILE: .python-version
+
+jobs:
+    bandit:
+        name: Security Scan with Bandit
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        steps:
+            -   name: Checkout code
+                uses: actions/checkout@v4
+                with:
+                    fetch-depth: 0
+            
+            -   name: Set up Python
+                uses: actions/setup-python@v5
+                with:
+                    python-version-file: ${{ env.PYTHON_VERSION_FILE}}
+            
+            -   name: Install uv (cached)
+                uses: astral-sh/setup-uv@v4
+                with:
+                    enable-cache: true
+                    
+            -   name: Install dependencies (frozen)
+                run: uv sync --dev --frozen
+                
+            -   name: Ensure reports dir (cross-platform)
+                # python -c "import os; os.makedirs('reports', exist_ok=True)" for cross-platform compatibility
+                run: mkdir -p reports
+                    
+            -   name: Run Bandit Security Scan (medium severity + JSON)
+                run: uv run bandit -r src tests -c pyproject.toml -ll -f json -o reports/bandit-medium.json || true
+
+            -   name: Run Bandit Security Scan (high severity + HTML)
+                run: uv run bandit -r src tests -c pyproject.toml -lll -f html -o reports/bandit-high.html
+
+            -   name: Upload Bandit Report
+                if: always()
+                uses: actions/upload-artifact@v4
+                with:
+                    name: bandit-reports
+                    path: reports/
+
+
+    pip-audit:
+        name: Dependency Vulnerability Scan with Pip-Audit
+        runs-on: ubuntu-latest
+        timeout-minutes: 10
+        steps:
+            -   name: Checkout code
+                uses: actions/checkout@v4
+                with:
+                    fetch-depth: 0
+            
+            -   name: Set up Python
+                uses: actions/setup-python@v5
+                with:
+                    python-version-file: ${{ env.PYTHON_VERSION_FILE}}
+            
+            -   name: Install uv (cached)
+                uses: astral-sh/setup-uv@v4
+                with:
+                    enable-cache: true
+                    
+            -   name: Install dependencies (frozen)
+                run: uv sync --dev --frozen
+
+            -   name: Ensure reports dir (cross-platform)
+                run: python -c "import os; os.makedirs('reports', exist_ok=True)"
+                    
+            -   name: Run pip-audit Dependency Vulnerability Scan with json output
+                run: uv run pip-audit --format=json -o reports/pip-audit.json
+
+            -   name: Upload pip-audit Report
+                if: always()
+                uses: actions/upload-artifact@v4
+                with:
+                    name: pip-audit-report
+                    path: reports/pip-audit.json

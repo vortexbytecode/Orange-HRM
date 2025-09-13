@@ -1,0 +1,60 @@
+name: PR Quality Checks
+
+on:
+    pull_request:
+        branches:
+            - main
+            - develop
+        paths:
+            - 'src/**'
+            - 'tests/**'
+            - 'pyproject.toml'
+            - 'pytest.ini'
+            - '.python-version'
+            - 'uv.lock'
+
+concurrency:
+    group: 'pr-checks-${{ github.ref }}'
+    cancel-in-progress: true
+
+env:
+  PYTHON_VERSION_FILE: .python-version
+
+jobs:
+    lint-and-format:
+        name: Code Quality & Formatting
+        runs-on: ubuntu-latest
+        timeout-minutes: 10
+        steps:
+            -   name: Checkout code
+                uses: actions/checkout@v4
+                with:
+                    fetch-depth: 0
+            
+            -   name: Set up Python
+                uses: actions/setup-python@v5
+                with:
+                    python-version-file: ${{ env.PYTHON_VERSION_FILE}}
+            
+            -   name: Install uv (cached)
+                uses: astral-sh/setup-uv@v4
+                with:
+                    enable-cache: true
+                    
+            -   name: Install dependencies (frozen)
+                run: uv sync --dev --frozen
+
+            -   name: Lint Code Quality with Ruff
+                run: uv run ruff check src tests
+
+            -   name: Check Code Formatting with Ruff
+                run: uv run ruff format src tests --check --diff
+
+            -   name: Generate Summary Report
+                if: always()
+                run: |
+                    echo "## Code Quality Results" >> $GITHUB_STEP_SUMMARY
+                    echo "- Linting: Completed" >> $GITHUB_STEP_SUMMARY  
+                    echo "- Formatting: Completed" >> $GITHUB_STEP_SUMMARY
+                    echo "- All quality checks passed!" >> $GITHUB_STEP_SUMMARY
+

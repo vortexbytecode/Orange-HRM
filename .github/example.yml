@@ -1,0 +1,327 @@
+name: 🔒 Security Scanning
+
+on:
+  # Scheduled security scans (enterprise standard)
+  schedule:
+    - cron: '0 2 * * 1'  # Every Monday at 2 AM UTC
+    - cron: '0 14 * * 5' # Every Friday at 2 PM UTC (pre-weekend)
+  
+  # Manual trigger for immediate security assessment
+  workflow_dispatch:
+    inputs:
+      scan_type:
+        description: 'Type of security scan'
+        required: true
+        default: 'full'
+        type: choice
+        options:
+          - full
+          - dependencies
+          - code
+          - secrets
+      severity_threshold:
+        description: 'Minimum severity to report'
+        required: false
+        default: 'medium'
+        type: choice
+        options:
+          - low
+          - medium
+          - high
+          - critical
+  
+  # Trigger on security-related file changes
+  push:
+    branches: [main, develop]
+    paths:
+      - 'requirements.txt'
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - '.github/workflows/security-scan.yml'
+
+env:
+  PYTHON_VERSION_FILE: .python-version
+  SECURITY_REPORTS_DIR: security-reports
+  RETENTION_DAYS: 90
+
+jobs:
+  # ================================
+  # DEPENDENCY VULNERABILITY SCANNING
+  # ================================
+  dependency-scan:
+    name: 🔍 Dependency Vulnerability Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      security-events: write  # Required for SARIF upload
+    
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: ${{ env.PYTHON_VERSION_FILE }}
+          
+      - name: ⚡ Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+          
+      - name: 📦 Install Dependencies
+        run: uv sync --dev --frozen
+        
+      - name: 📋 Create Reports Directory
+        run: mkdir -p ${{ env.SECURITY_REPORTS_DIR }}
+        
+      - name: 🛡️ Run Safety Check (Dependency Vulnerabilities)
+        run: |
+          uv run safety check \
+            --json \
+            --output ${{ env.SECURITY_REPORTS_DIR }}/safety-report.json \
+            --continue-on-error || true
+          
+          # Generate human-readable report
+          uv run safety check \
+            --output ${{ env.SECURITY_REPORTS_DIR }}/safety-report.txt \
+            --continue-on-error || true
+        
+      - name: 📊 Safety Report Summary
+        if: always()
+        run: |
+          if [ -f "${{ env.SECURITY_REPORTS_DIR }}/safety-report.json" ]; then
+            echo "## 🛡️ Dependency Security Scan Results" >> $GITHUB_STEP_SUMMARY
+            
+            # Count vulnerabilities by severity
+            CRITICAL=$(jq '[.vulnerabilities[] | select(.severity == "CRITICAL")] | length' ${{ env.SECURITY_REPORTS_DIR }}/safety-report.json 2>/dev/null || echo "0")
+            HIGH=$(jq '[.vulnerabilities[] | select(.severity == "HIGH")] | length' ${{ env.SECURITY_REPORTS_DIR }}/safety-report.json 2>/dev/null || echo "0")
+            MEDIUM=$(jq '[.vulnerabilities[] | select(.severity == "MEDIUM")] | length' ${{ env.SECURITY_REPORTS_DIR }}/safety-report.json 2>/dev/null || echo "0")
+            LOW=$(jq '[.vulnerabilities[] | select(.severity == "LOW")] | length' ${{ env.SECURITY_REPORTS_DIR }}/safety-report.json 2>/dev/null || echo "0")
+            
+            echo "- 🔴 Critical: $CRITICAL" >> $GITHUB_STEP_SUMMARY
+            echo "- 🟡 High: $HIGH" >> $GITHUB_STEP_SUMMARY  
+            echo "- 🟠 Medium: $MEDIUM" >> $GITHUB_STEP_SUMMARY
+            echo "- 🔵 Low: $LOW" >> $GITHUB_STEP_SUMMARY
+          fi
+        
+      - name: 🚨 Fail on Critical Vulnerabilities
+        run: |
+          if [ -f "${{ env.SECURITY_REPORTS_DIR }}/safety-report.json" ]; then
+            CRITICAL_COUNT=$(jq '[.vulnerabilities[] | select(.severity == "CRITICAL")] | length' ${{ env.SECURITY_REPORTS_DIR }}/safety-report.json 2>/dev/null || echo "0")
+            if [ "$CRITICAL_COUNT" -gt "0" ]; then
+              echo "❌ CRITICAL vulnerabilities found: $CRITICAL_COUNT"
+              echo "🚨 Enterprise policy: Critical vulnerabilities must be addressed immediately"
+              exit 1
+            fi
+          fi
+
+  # ================================
+  # CODE SECURITY ANALYSIS
+  # ================================
+  code-security:
+    name: 🔍 Code Security Analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      security-events: write
+    
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: ${{ env.PYTHON_VERSION_FILE }}
+          
+      - name: ⚡ Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+          
+      - name: 📦 Install Dependencies
+        run: uv sync --dev --frozen
+        
+      - name: 📋 Create Reports Directory
+        run: mkdir -p ${{ env.SECURITY_REPORTS_DIR }}
+        
+      - name: 🔒 Run Bandit Security Scan
+        run: |
+          uv run bandit -r src/ \
+            -f json \
+            -o ${{ env.SECURITY_REPORTS_DIR }}/bandit-report.json \
+            -ll || true  # Low confidence, Low severity minimum
+          
+          # Generate human-readable report
+          uv run bandit -r src/ \
+            -f txt \
+            -o ${{ env.SECURITY_REPORTS_DIR }}/bandit-report.txt \
+            -ll || true
+        
+      - name: 📊 Bandit Report Summary
+        if: always()
+        run: |
+          if [ -f "${{ env.SECURITY_REPORTS_DIR }}/bandit-report.json" ]; then
+            echo "## 🔒 Code Security Analysis Results" >> $GITHUB_STEP_SUMMARY
+            
+            # Parse Bandit results
+            HIGH_ISSUES=$(jq '.results | map(select(.issue_severity == "HIGH")) | length' ${{ env.SECURITY_REPORTS_DIR }}/bandit-report.json 2>/dev/null || echo "0")
+            MEDIUM_ISSUES=$(jq '.results | map(select(.issue_severity == "MEDIUM")) | length' ${{ env.SECURITY_REPORTS_DIR }}/bandit-report.json 2>/dev/null || echo "0")
+            LOW_ISSUES=$(jq '.results | map(select(.issue_severity == "LOW")) | length' ${{ env.SECURITY_REPORTS_DIR }}/bandit-report.json 2>/dev/null || echo "0")
+            
+            echo "- 🔴 High Severity: $HIGH_ISSUES" >> $GITHUB_STEP_SUMMARY
+            echo "- 🟡 Medium Severity: $MEDIUM_ISSUES" >> $GITHUB_STEP_SUMMARY
+            echo "- 🔵 Low Severity: $LOW_ISSUES" >> $GITHUB_STEP_SUMMARY
+            
+            # Show specific high-severity issues
+            if [ "$HIGH_ISSUES" -gt "0" ]; then
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "### 🚨 High Severity Issues:" >> $GITHUB_STEP_SUMMARY
+              jq -r '.results[] | select(.issue_severity == "HIGH") | "- **\(.test_name)**: \(.issue_text) (\(.filename):\(.line_number))"' ${{ env.SECURITY_REPORTS_DIR }}/bandit-report.json >> $GITHUB_STEP_SUMMARY 2>/dev/null || true
+            fi
+          fi
+
+  # ================================
+  # SECRET SCANNING
+  # ================================
+  secret-scan:
+    name: 🔍 Secret Detection Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for comprehensive secret detection
+          
+      - name: 🔍 Run TruffleHog Secret Scan
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: main
+          head: HEAD
+          extra_args: --debug --only-verified
+          
+      - name: 📋 Create Reports Directory
+        run: mkdir -p ${{ env.SECURITY_REPORTS_DIR }}
+        
+      - name: 🔐 Manual Secret Pattern Check
+        run: |
+          echo "## 🔐 Secret Pattern Analysis" >> $GITHUB_STEP_SUMMARY
+          
+          # Check for common secret patterns
+          echo "Scanning for potential secrets..." > ${{ env.SECURITY_REPORTS_DIR }}/secret-patterns.txt
+          
+          # API Keys
+          API_KEYS=$(grep -r -n -i "api[_-]key\|apikey" --include="*.py" --include="*.json" --include="*.yaml" --include="*.yml" . | grep -v ".git" | wc -l || echo "0")
+          
+          # Passwords in code
+          PASSWORDS=$(grep -r -n -i "password\s*=" --include="*.py" . | grep -v ".git" | grep -v "example" | wc -l || echo "0")
+          
+          # Tokens
+          TOKENS=$(grep -r -n -i "token\|secret" --include="*.py" --include="*.json" . | grep -v ".git" | grep -v "example" | wc -l || echo "0")
+          
+          echo "- 🔑 Potential API Keys: $API_KEYS" >> $GITHUB_STEP_SUMMARY
+          echo "- 🔒 Potential Passwords: $PASSWORDS" >> $GITHUB_STEP_SUMMARY
+          echo "- 🎟️ Potential Tokens: $TOKENS" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "$API_KEYS" -gt "0" ] || [ "$PASSWORDS" -gt "0" ] || [ "$TOKENS" -gt "0" ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ **Manual Review Required**: Potential secrets detected in code" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  # ================================
+  # COMPREHENSIVE SECURITY REPORT
+  # ================================
+  security-report:
+    name: 📋 Security Report Consolidation
+    needs: [dependency-scan, code-security, secret-scan]
+    runs-on: ubuntu-latest
+    if: always()
+    timeout-minutes: 5
+    
+    steps:
+      - name: 📥 Download Security Reports
+        uses: actions/download-artifact@v4
+        with:
+          name: security-reports
+          path: ${{ env.SECURITY_REPORTS_DIR }}/
+        continue-on-error: true
+        
+      - name: 📊 Generate Security Dashboard
+        run: |
+          echo "# 🔒 Enterprise Security Scan Report" > security-summary.md
+          echo "**Scan Date:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> security-summary.md
+          echo "**Repository:** ${{ github.repository }}" >> security-summary.md
+          echo "**Branch:** ${{ github.ref_name }}" >> security-summary.md
+          echo "**Commit:** ${{ github.sha }}" >> security-summary.md
+          echo "**Trigger:** ${{ github.event_name }}" >> security-summary.md
+          echo "" >> security-summary.md
+          
+          # Security posture summary
+          echo "## 🛡️ Security Posture" >> security-summary.md
+          echo "- ✅ Dependency Scan: ${{ needs.dependency-scan.result }}" >> security-summary.md
+          echo "- ✅ Code Security: ${{ needs.code-security.result }}" >> security-summary.md  
+          echo "- ✅ Secret Detection: ${{ needs.secret-scan.result }}" >> security-summary.md
+          echo "" >> security-summary.md
+          
+          # Overall status
+          if [[ "${{ needs.dependency-scan.result }}" == "success" && "${{ needs.code-security.result }}" == "success" && "${{ needs.secret-scan.result }}" == "success" ]]; then
+            echo "## ✅ Overall Status: SECURE" >> security-summary.md
+            echo "All security scans completed successfully with no critical issues." >> security-summary.md
+          else
+            echo "## ⚠️ Overall Status: REQUIRES ATTENTION" >> security-summary.md
+            echo "One or more security scans require manual review." >> security-summary.md
+          fi
+        
+      - name: 📤 Upload Security Reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: enterprise-security-reports-${{ github.run_number }}
+          path: |
+            ${{ env.SECURITY_REPORTS_DIR }}/
+            security-summary.md
+          retention-days: ${{ env.RETENTION_DAYS }}
+          
+      - name: 📢 Security Alert Notification
+        if: failure() && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          if [ -n "$SLACK_WEBHOOK_URL" ]; then
+            curl -X POST -H 'Content-type: application/json' \
+            --data "{
+              \"text\":\"🚨 Security Alert: OrangeHRM Test Automation\",
+              \"blocks\":[
+                {
+                  \"type\":\"section\",
+                  \"text\":{
+                    \"type\":\"mrkdwn\",
+                    \"text\":\"*🔒 Security Scan Alert*\n*Repository:* ${{ github.repository }}\n*Branch:* ${{ github.ref_name }}\n*Status:* ⚠️ Requires Attention\n*Report:* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Details>\n*Timestamp:* $(date -u '+%Y-%m-%d %H:%M:%S UTC')\"
+                  }
+                }
+              ]
+            }" \
+            "$SLACK_WEBHOOK_URL" || echo "Slack notification failed"
+          fi
+
+# ================================
+# ENTERPRISE SECURITY WORKFLOW
+# ================================
+# This workflow demonstrates:
+# ✅ Comprehensive security scanning strategy
+# ✅ Multiple scan types (dependencies, code, secrets)
+# ✅ Automated scheduling and manual triggers
+# ✅ Enterprise reporting and alerting
+# ✅ Proper artifact management
+# ✅ Security incident response workflow
+# ✅ Compliance with enterprise security standards

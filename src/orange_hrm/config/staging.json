@@ -1,0 +1,11 @@
+{
+    "webdriver": {
+        "explicit_wait": 15
+    },
+    "application": {
+        "base_url": "https://opensource-demo.orangehrmlive.com/web/index.php"
+    },
+    "performance": {
+        "performance_threshold": 5
+    }
+}
