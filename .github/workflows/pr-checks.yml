@@ -106,26 +106,17 @@ jobs:
 
 
     pr-comment:
-      runs-on: ubuntu-latest
-      needs: [ruff, mypy]
-      if: github.event_name == 'pull_request'
-      steps:
-        - uses: actions/checkout@v4
-        - uses: actions/github-script@v7
-          with:
-            script: |
-              const { execSync } = require("child_process");
-              execSync("npm install @actions/core @actions/github");
-              execSync("node .github/scripts/update-pr-comment.js", {
-                stdio: "inherit",
-                env: {
-                  ...process.env,
-                  INPUT_TOKEN: process.env.GITHUB_TOKEN,
-                  INPUT_PR_NUMBER: "${{ github.event.pull_request.number }}",
-                  INPUT_SECTION: "PR Checks",
-                  INPUT_RESULTS: `
-                  - Ruff: ${{ needs.ruff.result }}
-                  - MyPy: ${{ needs.mypy.result }}
-                  `.trim(),
-                },
-              });
+        name: Update PR with Security Results
+        runs-on: ubuntu-latest
+        needs: [ruff, mypy]
+        if: github.event_name == 'pull_request'
+        steps:
+            - uses: actions/checkout@v4
+            - run: npm install @actions/core @actions/github
+            - run: node .github/scripts/update-pr-comment.js
+              env:
+                GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                PR_NUMBER: ${{ github.event.pull_request.number }}
+                RESULTS: |
+                  - Bandit: ${{ needs.ruff.result }}
+                  - pip-audit: ${{ needs.mypy.result }}

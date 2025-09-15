@@ -6,52 +6,46 @@ async function run() {
     const token = process.env.INPUT_TOKEN;
     const section = process.env.INPUT_SECTION;
     const results = process.env.INPUT_RESULTS;
-    const prNumber = parseInt(process.env.INPUT_PR_NUMBER, 10);
+    const prNumber = process.env.INPUT_PR_NUMBER;
 
     if (!token || !section || !results || !prNumber) {
-      core.setFailed("Missing required inputs (token, section, results, prNumber)");
-      return;
+      throw new Error("Missing required inputs (token, section, results, prNumber)");
     }
 
     const octokit = github.getOctokit(token);
+    const { owner, repo } = github.context.repo;
 
-    const marker = "<!-- unified-pr-comment -->";
-
-    const newSection = `
-### ${section}
-${results}
-`;
-
-    // Get existing comments
+    // Fetch existing comments
     const { data: comments } = await octokit.rest.issues.listComments({
+      owner,
+      repo,
       issue_number: prNumber,
-      owner: github.context.repo.owner,
-      repo: github.context.repo.repo,
     });
 
-    // Find existing unified comment
-    const existing = comments.find((c) => c.body && c.body.includes(marker));
+    const marker = `<!-- ci-comment-${section} -->`;
+    const newBody = `${marker}\n### ${section}\n${results}`;
+
+    const existing = comments.find(c => c.body && c.body.includes(marker));
 
     if (existing) {
-      const updatedBody = existing.body.replace(
-        marker,
-        `${marker}\n${newSection}`
-      );
+      // Update
       await octokit.rest.issues.updateComment({
+        owner,
+        repo,
         comment_id: existing.id,
-        owner: github.context.repo.owner,
-        repo: github.context.repo.repo,
-        body: updatedBody,
+        body: newBody,
       });
     } else {
-      const body = `${marker}\n${newSection}`;
+      // Create
       await octokit.rest.issues.createComment({
+        owner,
+        repo,
         issue_number: prNumber,
-        owner: github.context.repo.owner,
-        repo: github.context.repo.repo,
-        body,
+        body: newBody,
       });
     }
+
+    console.log(`✅ Updated PR comment for section: ${section}`);
   } catch (error) {
     core.setFailed(error.message);
   }
