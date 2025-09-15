@@ -260,11 +260,11 @@ class ExamplePage:
     INPUT_FIELD = (By.NAME, "input-field")
     ERROR_MESSAGE = (By.CLASS_NAME, "error-message")
     
-    def __init__(self, driver: WebDriver, env_config: dict):
+    def __init__(self, driver: WebDriver, json_env_config: dict):
         """Initialize page object."""
         self.driver = driver
-        self.base_page = BasePage(driver, env_config)
-        self.url = env_config[TopKey.APPLICATION.value][ApplicationFields.BASE_URL.value] + "/example"
+        self.base_page = BasePage(driver, json_env_config)
+        self.url = json_env_config[TopKey.APPLICATION.value][ApplicationFields.BASE_URL.value] + "/example"
     
     def navigate_to_page(self):
         """Navigate to the example page."""
@@ -297,8 +297,8 @@ class ExamplePage:
 
 ```python
 class MyPage:
-    def __init__(self, driver, env_config):
-        self.base_page = BasePage(driver, env_config)
+    def __init__(self, driver, json_env_config):
+        self.base_page = BasePage(driver, json_env_config)
     
     def interact_with_element(self):
         # Wait for element to be visible

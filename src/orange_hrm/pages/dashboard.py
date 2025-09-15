@@ -24,18 +24,18 @@ class DashboardPage:
 
     DASHBOARD_TITLE = (By.XPATH, "//h6[normalize-space()='Dashboard']")
 
-    def __init__(self, driver: WebDriver, env_config: dict) -> None:
+    def __init__(self, driver: WebDriver, json_env_config: dict) -> None:
         """Initialize DashboardPage with WebDriver instance.
 
         Parameters
         ----------
         driver : WebDriver
             Selenium WebDriver instance for browser automation
-        env_config : dict
+        json_env_config : dict
             Environment configuration dictionary
 
         """
-        self.base_page = BasePage(driver, env_config)
+        self.base_page = BasePage(driver, json_env_config)
 
     def is_dashboard_title_displayed(self) -> bool:
         """Check if the dashboard title is displayed on the page.

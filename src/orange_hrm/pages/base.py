@@ -60,14 +60,14 @@ class BasePage:
 
     """
 
-    def __init__(self, driver: WebDriver, env_config: dict) -> None:
+    def __init__(self, driver: WebDriver, json_env_config: dict) -> None:
         """Initialize BasePage with WebDriver instance and environment configuration.
 
         Parameters
         ----------
         driver : WebDriver
             Selenium WebDriver instance for browser automation
-        env_config : dict
+        json_env_config : dict
             Dictionary containing environment configuration settings including:
             - Performance thresholds
             - WebDriver timeout settings
@@ -78,10 +78,12 @@ class BasePage:
         providing common web interaction methods and performance monitoring.
 
         """
-        self.driver = driver
-        self.performance = env_config[TopKey.PERFORMANCE.value][PerformanceFields.PERFORMANCE_THRESHOLD.value]
-        self.explicit_wait_timeout = env_config[TopKey.WEBDRIVER.value][WebDriverFields.EXPLICIT_WAIT.value]
-        self.wait = WebDriverWait(self.driver, self.explicit_wait_timeout)
+        self.driver: WebDriver = driver
+        self.performance: int = json_env_config[TopKey.PERFORMANCE.value][PerformanceFields.PERFORMANCE_THRESHOLD.value]
+        self.explicit_wait_timeout: int | float = json_env_config[TopKey.WEBDRIVER.value][
+            WebDriverFields.EXPLICIT_WAIT.value
+        ]
+        self.wait: WebDriverWait[WebDriver] = WebDriverWait(self.driver, self.explicit_wait_timeout)
 
     def _log_performance(self, action: str, duration: float) -> None:
         """Log performance metrics for actions with threshold checking.

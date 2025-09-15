@@ -51,20 +51,20 @@ class LoginPage:
 
     LOGIN_BUTTON = (By.XPATH, "//button[normalize-space()='Login']")
 
-    def __init__(self, driver: WebDriver, env_config: dict) -> None:
+    def __init__(self, driver: WebDriver, json_env_config: dict) -> None:
         """Initialize LoginPage with WebDriver instance.
 
         Parameters
         ----------
         driver : WebDriver
             Selenium WebDriver instance for browser automation
-        env_config : dict
+        json_env_config : dict
             Environment configuration dictionary
 
         """
         self.driver = driver
-        self.base_page = BasePage(driver, env_config)
-        self.base_url = env_config[TopKey.APPLICATION.value][ApplicationFields.BASE_URL.value]
+        self.base_page = BasePage(driver, json_env_config)
+        self.base_url = json_env_config[TopKey.APPLICATION.value][ApplicationFields.BASE_URL.value]
         self.url = self.base_url + "/auth/login"
 
     def navigate_to_login_page(self) -> None:

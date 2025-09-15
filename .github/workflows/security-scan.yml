@@ -1,21 +1,10 @@
 name: Security Scan Workflow
 
 on:
-    push:
-        branches:
-            - main
-            - develop
-        paths:
-            - 'src/**'
-            - 'tests/**'
-            - 'pyproject.toml'
-            - 'pytest.ini'
-            - '.python-version'
-            - 'uv.lock'
-
     pull_request:
         branches:
             - main
+            - develop
 
     schedule:
         - cron: '0 0 1 * *'  # Runs at midnight on the first day of every month.

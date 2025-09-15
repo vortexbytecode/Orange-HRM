@@ -36,7 +36,7 @@ class EnvConfig(BaseSettings):
 
         """
         if not v.get_secret_value().strip():
-            msg = f"{info.field_name} cannot be empty"
+            msg: str = f"{info.field_name} cannot be empty"
             raise ValueError(msg)
         return v
 
