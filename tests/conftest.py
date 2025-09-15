@@ -40,7 +40,7 @@ def refresh_env_config() -> Generator[None, Any]:
     >>>     monkeypatch.setenv("ORANGEHRM_USERNAME", "temp_user2")
     >>>     fresh = get_dot_env_secrets()   # now reads patched env and caches it
     >>>     assert fresh.username.get_secret_value() == "temp_user2"
-    >>>     # fixture automatically clears cache at teardown
+    >>> # fixture automatically clears cache at teardown
 
     """
     get_dot_env_secrets.cache_clear()  # ensure no stale cached object

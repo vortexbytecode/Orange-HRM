@@ -10,6 +10,7 @@ operations like waiting for elements, checking visibility, and entering text.
 
 import logging
 import time
+from typing import Any
 
 from selenium.common import WebDriverException
 from selenium.common.exceptions import TimeoutException
@@ -60,7 +61,7 @@ class BasePage:
 
     """
 
-    def __init__(self, driver: WebDriver, json_env_config: dict) -> None:
+    def __init__(self, driver: WebDriver, json_env_config: dict[str, Any]) -> None:
         """Initialize BasePage with WebDriver instance and environment configuration.
 
         Parameters
@@ -78,12 +79,10 @@ class BasePage:
         providing common web interaction methods and performance monitoring.
 
         """
-        self.driver: WebDriver = driver
-        self.performance: int = json_env_config[TopKey.PERFORMANCE.value][PerformanceFields.PERFORMANCE_THRESHOLD.value]
-        self.explicit_wait_timeout: int | float = json_env_config[TopKey.WEBDRIVER.value][
-            WebDriverFields.EXPLICIT_WAIT.value
-        ]
-        self.wait: WebDriverWait[WebDriver] = WebDriverWait(self.driver, self.explicit_wait_timeout)
+        self.driver = driver
+        self.performance = json_env_config[TopKey.PERFORMANCE.value][PerformanceFields.PERFORMANCE_THRESHOLD.value]
+        self.explicit_wait_timeout = json_env_config[TopKey.WEBDRIVER.value][WebDriverFields.EXPLICIT_WAIT.value]
+        self.wait = WebDriverWait(self.driver, self.explicit_wait_timeout)
 
     def _log_performance(self, action: str, duration: float) -> None:
         """Log performance metrics for actions with threshold checking.
@@ -106,7 +105,7 @@ class BasePage:
         else:
             performance_logger.info("Action '%s' took %.2f seconds.", action, duration)
 
-    def wait_for_element_visible(self, locator: tuple) -> WebElement:
+    def wait_for_element_visible(self, locator: tuple[str, str]) -> WebElement:
         """Wait for element to be visible on the page.
 
         Parameters
@@ -158,7 +157,7 @@ class BasePage:
             logger.debug("Element located by %s is visible.", locator)
             return element
 
-    def wait_for_element_clickable(self, locator: tuple) -> WebElement:
+    def wait_for_element_clickable(self, locator: tuple[str, str]) -> WebElement:
         """Wait for element to be clickable (visible and enabled).
 
         Parameters
@@ -210,12 +209,12 @@ class BasePage:
             logger.debug("Element located by %s is clickable.", locator)
             return element
 
-    def is_element_visible(self, locator: tuple) -> bool:
+    def is_element_visible(self, locator: tuple[str, str]) -> bool:
         """Check if an element is visible on the page.
 
         Parameters
         ----------
-        locator : tuple
+        locator : tuple[str, str]
             Element locator in format (By.TYPE, "value")
 
         Returns
@@ -261,12 +260,12 @@ class BasePage:
             )
             raise
 
-    def enter_text(self, locator: tuple, text: str, *, is_secret: bool = False) -> None:
+    def enter_text(self, locator: tuple[str, str], text: str, *, is_secret: bool = False) -> None:
         """Enter text into an input element.
 
         Parameters
         ----------
-        locator : tuple
+        locator : tuple[str, str]
             Element locator in format (By.TYPE, "value")
         text : str
             Text to enter into element

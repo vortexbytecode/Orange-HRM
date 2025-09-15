@@ -1,7 +1,7 @@
 [project]
 name = "orange-hrm"
 version = "0.1.0"
-description = "Enterprise-grade UI automation testing framework using Selenium and pytest"
+description = "Enterprise test automation framework for OrangeHRM web applications using Selenium and pytest"
 readme = "README.md"
 authors = [
     { name = "Bijo", email = "next.wavecode@gmail.com" }
@@ -35,7 +35,7 @@ package = true
 # ==== Ruff configuration ====
 [tool.ruff]
 src = ["src", "tests"]
-line-length = 120
+line-length = 150
 indent-width = 4
 target-version = "py313"
 
@@ -175,7 +175,7 @@ ignore = [
     "D100", "D101", "D102", "D103", "D104", "D105", "D106", "D107",
     
     # Type annotation requirements (gradually adopt)
-    "ANN001", "ANN002", "ANN003", "ANN101", "ANN102", "ANN201", "ANN202", "ANN204",
+    "ANN001", "ANN002", "ANN003", "ANN201", "ANN202", "ANN204",
     
     # Boolean arguments (common in test automation)
     "FBT001", "FBT002", "FBT003",
@@ -211,7 +211,7 @@ convention = "numpy"  # Accepts: "google", "numpy", or "pep257".
 [tool.ruff.format]
 quote-style = "double"
 docstring-code-format = true
-docstring-code-line-length = 72
+docstring-code-line-length = 120
 indent-style = "space"
 skip-magic-trailing-comma = false
 
@@ -221,15 +221,37 @@ skip-magic-trailing-comma = false
 exclude_dirs = [
     ".venv", ".env", ".git", "__pycache__", ".github", 
     "reports", ".vscode", "docs", ".coverage", ".mypy_cache", 
-    ".pytest_cache", ".ruff_cache", "drivers"
+    ".pytest_cache", ".ruff_cache", "drivers", ".trae"
 ]
 skips = ["B101"]  # Skip assert_used test
 
 
 # ===== MYPY CONFIGURATION =====
 [tool.mypy]
-# Perfect for your src/ layout structure
 mypy_path = "src"
-packages = ["orange_hrm"]
 python_version = "3.13"
-plugins = ["pydantic.mypy"]
+plugins = ["pydantic.mypy"] # Plugin integration
+explicit_package_bases = true
+namespace_packages = true
+files = ["src"]
+
+exclude = [
+  '^tests/',
+  '^drivers/',
+  '^\\.venv/',
+  '^\\.env$',
+  '^reports/',
+  '^docs/',
+  '^\\.git/',
+  '^\\.github/',
+  '^\\.mypy_cache/',
+  '^\\.ruff_cache/',
+  '^\\.trae/',
+  '^__pycache__/',
+  '^\\.vscode/',
+  '^\\.coverage$',
+  '^\\.gitignore$',
+  '^pyproject.toml$',
+  '^README\\.md$',
+  '^uv\\.lock$'
+]

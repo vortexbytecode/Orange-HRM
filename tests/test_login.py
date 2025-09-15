@@ -111,9 +111,7 @@ def test_login_invalid_credentials(
     login_page.click_login_button()
     logger.info("Successfully clicked the login button")
 
-    assert login_page.is_invalid_credentials_message_displayed(), (
-        "Invalid credentials message is not displayed after login with invalid credentials"
-    )
+    assert login_page.is_invalid_credentials_message_displayed(), "Invalid credentials message is not displayed after login with invalid credentials"
     logger.info("Successfully verified invalid credentials message visibility")
 
 
@@ -149,14 +147,10 @@ def test_login_empty_credentials(driver: WebDriver, json_env_config: dict) -> No
     login_page.click_login_button()
     logger.info("Successfully clicked the login button")
 
-    assert login_page.is_username_validation_error_displayed(), (
-        "Username validation error is not displayed after login with empty username"
-    )
+    assert login_page.is_username_validation_error_displayed(), "Username validation error is not displayed after login with empty username"
     logger.info("Successfully verified username validation error visibility")
 
-    assert login_page.is_password_validation_error_displayed(), (
-        "Password validation error is not displayed after login with empty password"
-    )
+    assert login_page.is_password_validation_error_displayed(), "Password validation error is not displayed after login with empty password"
     logger.info("Successfully verified password validation error visibility")
 
 
@@ -192,9 +186,7 @@ def test_login_empty_username(driver: WebDriver, json_env_config: dict) -> None:
     login_page.click_login_button()
     logger.info("Successfully clicked the login button")
 
-    assert login_page.is_username_validation_error_displayed(), (
-        "Username validation error is not displayed after login with empty username"
-    )
+    assert login_page.is_username_validation_error_displayed(), "Username validation error is not displayed after login with empty username"
     logger.info("Successfully verified username validation error visibility")
 
 
@@ -230,7 +222,5 @@ def test_login_empty_password(driver: WebDriver, json_env_config: dict) -> None:
     login_page.click_login_button()
     logger.info("Successfully clicked the login button")
 
-    assert login_page.is_password_validation_error_displayed(), (
-        "Password validation error is not displayed after login with empty password"
-    )
+    assert login_page.is_password_validation_error_displayed(), "Password validation error is not displayed after login with empty password"
     logger.info("Successfully verified password validation error visibility")

@@ -6,6 +6,7 @@ clicking the login button, and validating error messages.
 """
 
 import logging
+from typing import Any
 
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webdriver import WebDriver
@@ -41,17 +42,17 @@ class LoginPage:
 
     """
 
-    INVALID_CREDENTIALS_MESSAGE = (By.XPATH, "//p[@class='oxd-text oxd-text--p oxd-alert-content-text']")
+    INVALID_CREDENTIALS_MESSAGE: tuple[str, str] = (By.XPATH, "//p[@class='oxd-text oxd-text--p oxd-alert-content-text']")
 
-    USERNAME_FIELD = (By.XPATH, "//input[@placeholder='Username']")
-    USERNAME_VALIDATION_ERROR = (By.XPATH, "//div[@class='orangehrm-login-slot-wrapper']//div[1]//div[1]//span[1]")
+    USERNAME_FIELD: tuple[str, str] = (By.XPATH, "//input[@placeholder='Username']")
+    USERNAME_VALIDATION_ERROR: tuple[str, str] = (By.XPATH, "//div[@class='orangehrm-login-slot-wrapper']//div[1]//div[1]//span[1]")
 
-    PASSWORD_FIELD = (By.XPATH, "//input[@placeholder='Password']")
-    PASSWORD_VALIDATION_ERROR = (By.XPATH, "//div[@class='orangehrm-login-form']//div[2]//div[1]//span[1]")
+    PASSWORD_FIELD: tuple[str, str] = (By.XPATH, "//input[@placeholder='Password']")
+    PASSWORD_VALIDATION_ERROR: tuple[str, str] = (By.XPATH, "//div[@class='orangehrm-login-form']//div[2]//div[1]//span[1]")
 
-    LOGIN_BUTTON = (By.XPATH, "//button[normalize-space()='Login']")
+    LOGIN_BUTTON: tuple[str, str] = (By.XPATH, "//button[normalize-space()='Login']")
 
-    def __init__(self, driver: WebDriver, json_env_config: dict) -> None:
+    def __init__(self, driver: WebDriver, json_env_config: dict[str, Any]) -> None:
         """Initialize LoginPage with WebDriver instance.
 
         Parameters
