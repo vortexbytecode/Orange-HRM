@@ -13,4 +13,3 @@ reports/
 allure-results/
 **/bandit-report.json
 docs/private/
-coverage.xml

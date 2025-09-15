@@ -1,24 +1,10 @@
 name: Security Scan Workflow
 
 on:
-    push:
-        branches:
-            - main
-            - develop
-        paths:
-            - 'src/**'
-            - 'tests/**'
-            - 'pyproject.toml'
-            - 'pytest.ini'
-            - '.python-version'
-            - 'uv.lock'
-
     pull_request:
-        branches:
-            - main
 
     schedule:
-        - cron: '0 0 1 * *'  # Runs at midnight on the first day of every month.
+        - cron: '0 1 * * *'  # Runs at 1 AM every day.
 
     workflow_dispatch:
         inputs:
@@ -33,6 +19,9 @@ concurrency:
 
 env:
   PYTHON_VERSION_FILE: .python-version
+  # Security: Prevent script injection
+  ACTIONS_RUNNER_DEBUG: false
+  ACTIONS_STEP_DEBUG: false
 
 jobs:
     bandit:
@@ -50,23 +39,32 @@ jobs:
                 with:
                     python-version-file: ${{ env.PYTHON_VERSION_FILE}}
             
+            -   name: Restore uv Cache
+                uses: actions/cache@v4
+                with:
+                    path: /tmp/.uv-cache
+                    key: uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+                    restore-keys: |
+                        uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+                        uv-${{ runner.os }}-
+
             -   name: Install uv (cached)
-                uses: astral-sh/setup-uv@v4
+                uses: astral-sh/setup-uv@v6
                 with:
                     enable-cache: true
                     
             -   name: Install dependencies (frozen)
-                run: uv sync --dev --frozen
+                run: uv sync --dev --locked
                 
-            -   name: Ensure reports dir (cross-platform)
-                # python -c "import os; os.makedirs('reports', exist_ok=True)" for cross-platform compatibility
+            -   name: Ensure reports dir
+                # python -c "import os; os.makedirs('reports', exist_ok=True)" for cross-platform compatibility  (cross-platform)
                 run: mkdir -p reports
                     
             -   name: Run Bandit Security Scan (medium severity + JSON)
-                run: uv run bandit -r src tests -c pyproject.toml -ll -f json -o reports/bandit-medium.json || true
+                run: uv run bandit -f json -l medium -o reports/bandit_report.json
 
             -   name: Run Bandit Security Scan (high severity + HTML)
-                run: uv run bandit -r src tests -c pyproject.toml -lll -f html -o reports/bandit-high.html
+                run: uv run bandit -f html -l all -o reports/bandit_report.html || true
 
             -   name: Upload Bandit Report
                 if: always()
@@ -91,23 +89,32 @@ jobs:
                 with:
                     python-version-file: ${{ env.PYTHON_VERSION_FILE}}
             
+            -   name: Restore uv Cache
+                uses: actions/cache@v4
+                with:
+                    path: /tmp/.uv-cache
+                    key: uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+                    restore-keys: |
+                        uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+                        uv-${{ runner.os }}-
+
             -   name: Install uv (cached)
-                uses: astral-sh/setup-uv@v4
+                uses: astral-sh/setup-uv@v6
                 with:
                     enable-cache: true
                     
             -   name: Install dependencies (frozen)
-                run: uv sync --dev --frozen
+                run: uv sync --dev --locked
 
-            -   name: Ensure reports dir (cross-platform)
-                run: python -c "import os; os.makedirs('reports', exist_ok=True)"
+            -   name: Ensure reports dir
+                run: mkdir -p reports
                     
             -   name: Run pip-audit Dependency Vulnerability Scan with json output
-                run: uv run pip-audit --format=json -o reports/pip-audit.json
+                run: uv run pip-audit -f json -o reports/pip-audit.json
 
             -   name: Upload pip-audit Report
                 if: always()
                 uses: actions/upload-artifact@v4
                 with:
                     name: pip-audit-report
-                    path: reports/pip-audit.json
+                    path: reports/

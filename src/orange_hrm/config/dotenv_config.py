@@ -28,15 +28,17 @@ class EnvConfig(BaseSettings):
             v (SecretStr): The credential value to validate
             info (ValidationInfo): Validation information containing field metadata
 
-        Returns:
+        Returns
+        -------
             SecretStr: The validated credential value
 
-        Raises:
+        Raises
+        ------
             ValueError: If the credential value is empty or contains only whitespace
 
         """
         if not v.get_secret_value().strip():
-            msg = f"{info.field_name} cannot be empty"
+            msg: str = f"{info.field_name} cannot be empty"
             raise ValueError(msg)
         return v
 
@@ -53,9 +55,10 @@ class EnvConfig(BaseSettings):
 def get_dot_env_secrets() -> EnvConfig:
     """Load and cache environment variables from .env file.
 
-    Returns:
+    Returns
+    -------
         EnvConfig: Configuration object containing validated OrangeHRM credentials
         loaded from environment variables or .env file.
 
     """
-    return EnvConfig()  # type: ignore[call-arg]
+    return EnvConfig()

@@ -5,6 +5,7 @@ page of the OrangeHRM application.
 """
 
 import logging
+from typing import Any
 
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webdriver import WebDriver
@@ -22,20 +23,20 @@ class DashboardPage:
     dashboard page, including checking visibility of dashboard components.
     """
 
-    DASHBOARD_TITLE = (By.XPATH, "//h6[normalize-space()='Dashboard']")
+    DASHBOARD_TITLE: tuple[str, str] = (By.XPATH, "//h6[normalize-space()='Dashboard']")
 
-    def __init__(self, driver: WebDriver, env_config: dict) -> None:
+    def __init__(self, driver: WebDriver, json_env_config: dict[str, Any]) -> None:
         """Initialize DashboardPage with WebDriver instance.
 
         Parameters
         ----------
         driver : WebDriver
             Selenium WebDriver instance for browser automation
-        env_config : dict
+        json_env_config : dict
             Environment configuration dictionary
 
         """
-        self.base_page = BasePage(driver, env_config)
+        self.base_page = BasePage(driver, json_env_config)
 
     def is_dashboard_title_displayed(self) -> bool:
         """Check if the dashboard title is displayed on the page.
