@@ -19,7 +19,8 @@ env:
   ACTIONS_STEP_DEBUG: false
 
 permissions:
-    contents: write          # Needed for actions/checkout
+    contents: read          # Needed for actions/checkout
+    actions: read           # Needed for CodeQL action to access workflow info
     security-events: write  # Needed to upload SARIF to GitHub Code Scanning
     pull-requests: write    # Needed to comment on PRs
 
