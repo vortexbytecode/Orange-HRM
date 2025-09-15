@@ -81,6 +81,7 @@ jobs:
                 uses: github/codeql-action/upload-sarif@v3
                 with:
                     sarif_file: reports/bandit_report.sarif
+                    token: ${{ secrets.GITHUB_TOKEN }}
 
     pip-audit:
         name: Dependency Vulnerability Scan with Pip-Audit
