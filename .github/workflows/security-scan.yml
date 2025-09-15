@@ -123,34 +123,26 @@ jobs:
                     path: reports/
 
     pr-comment:
-      name: PR Security Results
       runs-on: ubuntu-latest
       needs: [bandit, pip-audit]
       if: github.event_name == 'pull_request'
       steps:
-        - name: Post PR Comment
-          uses: actions/github-script@v7
+        - uses: actions/checkout@v4
+        - uses: actions/github-script@v7
           with:
             script: |
-              const bandit = "${{ needs.bandit.result }}";
-              const pipAudit = "${{ needs.pip-audit.result }}";
-            
-              const results = `
-              ## 🔐 Security Scan Results
-            
-              | Tool       | Result |
-              |-----------|--------|
-              | Bandit    | ${bandit === "success" ? "✅ Passed" : "❌ Issues Found"} |
-              | pip-audit | ${pipAudit === "success" ? "✅ Passed" : "❌ Issues Found"} |
-            
-              ${ (bandit === "success" && pipAudit === "success")
-                ? "✅ All security checks passed!"
-                : "❌ Some issues found. Check workflow artifacts." }
-              `;
-            
-              github.rest.issues.createComment({
-                issue_number: context.issue.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                body: results
+              const { execSync } = require("child_process");
+              execSync("npm install @actions/core @actions/github");
+              execSync("node .github/scripts/update-pr-comment.js", {
+                stdio: "inherit",
+                env: {
+                  ...process.env,
+                  INPUT_TOKEN: process.env.GITHUB_TOKEN,
+                  INPUT_PR_NUMBER: "${{ github.event.pull_request.number }}",
+                  INPUT_SECTION: "Security Scan",
+                  INPUT_RESULTS: `
+                  - Bandit: ${{ needs.bandit.result }}
+                  - pip-audit: ${{ needs.pip-audit.result }}
+                  `.trim(),
+                },
               });
