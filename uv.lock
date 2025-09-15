@@ -471,7 +471,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "bandit", extras = ["sarif"], specifier = ">=1.8.6" },
+    { name = "bandit", extras = ["sarif", "toml"], specifier = ">=1.8.6" },
     { name = "lxml", specifier = ">=6.0.1" },
     { name = "mypy", specifier = ">=1.18.1" },
     { name = "pip-audit", specifier = ">=2.9.0" },
