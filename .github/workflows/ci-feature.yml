@@ -23,7 +23,7 @@ permissions:
 jobs:
   smoke-tests:
     name: Smoke Tests (Chrome Only)
-    runs-on: windows-latest
+    runs-on: macos-latest
     timeout-minutes: 15
     
     steps:
@@ -37,18 +37,14 @@ jobs:
         with:
           python-version-file: ${{ env.PYTHON_VERSION_FILE }}
       
-      - name: Verify Chrome Installation
-        shell: powershell
+      - name: Verify Chrome Installation on macOS
+        if: runner.os == 'macOS'
         run: |
-          $chromePath = "$env:PROGRAMFILES\Google\Chrome\Application\chrome.exe"
-          if (-not (Test-Path $chromePath)) {
-              $chromePath = "$env:PROGRAMFILES(x86)\Google\Chrome\Application\chrome.exe"
-          }
-          
-          if (Test-Path $chromePath) {
-              $versionInfo = Get-Item -Path $chromePath
-              Write-Output "Google Chrome Version: $($versionInfo.VersionInfo.ProductVersion)"
-          } else {
-              Write-Error "Could not find chrome.exe in common installation paths."
-              exit 1
-          }
+          chrome_version=$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" /Applications/Google\ Chrome.app/Contents/Info.plist)
+          if [ -n "$chrome_version" ]; then
+            echo "Google Chrome Version: $chrome_version"
+          else
+            echo "::error::Could not find Chrome version on macOS"
+            exit 1
+          fi
+
