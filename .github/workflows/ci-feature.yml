@@ -109,21 +109,21 @@ jobs:
         shell: bash
         run: |
           echo "--- Checking Google Chrome ---"
-          if command -v google-chrome &> /dev/null; then
+          if command -v google-chrome &>/dev/null; then
             google-chrome --version
           else
             echo "Google Chrome not found on Ubuntu."
           fi
           
           echo "--- Checking Mozilla Firefox ---"
-          if command -v firefox &> /dev/null; then
+          if command -v firefox &>/dev/null; then
             firefox --version
           else
             echo "Mozilla Firefox not found on Ubuntu."
           fi
           
           echo "--- Checking Microsoft Edge ---"
-          if command -v msedge &> /dev/null; then
+          if command -v msedge &>/dev/null; then
             msedge --version
           else
             echo "Microsoft Edge not found on Ubuntu."
