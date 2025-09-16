@@ -66,7 +66,7 @@ jobs:
             -   name: Run Smoke Tests (Critical User Journeys)
                 run: |
                     # Option 3: Generate both HTML and XML reports
-                    uv run pytest \
+                    COLUMNS=120 uv run pytest \
                         --cov-branch \
                         --cov=src \
                         --cov-report=html:reports/coverage \
