@@ -1,0 +1,43 @@
+name: Feature Branch Testing
+
+on:
+  push:
+    branches: 
+      - 'feature/*'
+      - 'bugfix/*'
+  workflow_dispatch:
+
+concurrency:
+  group: feature-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION_FILE: .python-version
+  ACTIONS_RUNNER_DEBUG: false
+  ACTIONS_STEP_DEBUG: false
+
+permissions:
+  contents: read
+  checks: write
+
+jobs:
+  smoke-tests:
+    name: Smoke Tests (Chrome Only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: ${{ env.PYTHON_VERSION_FILE }}
+      
+      - name: Verify Chrome Installation (Pre-installed on Ubuntu runners)
+        run: |
+          google-chrome --version
+          which google-chrome
