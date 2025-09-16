@@ -39,5 +39,4 @@ jobs:
       
       - name: Verify Chrome Installation (Pre-installed on Ubuntu runners)
         run: |
-            where chrome
-            chrome --version
+            (Get-ItemProperty 'HKCU:\Software\Google\Chrome\BLBeacon').version
