@@ -1,4 +1,4 @@
-name: Feature Branch Testing
+name: Check Pre-installed Browser Versions
 
 on:
   push:
@@ -8,43 +8,109 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: feature-tests-${{ github.ref }}
+  group: browser-checks-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  PYTHON_VERSION_FILE: .python-version
-  ACTIONS_RUNNER_DEBUG: false
-  ACTIONS_STEP_DEBUG: false
-
-permissions:
-  contents: read
-  checks: write
-
 jobs:
-  smoke-tests:
-    name: Smoke Tests (Chrome Only)
-    runs-on: macos-latest
-    timeout-minutes: 15
+  check-browser-versions:
+    name: Check Browser Versions on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
       
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version-file: ${{ env.PYTHON_VERSION_FILE }}
-      
-      - name: Verify Chrome Installation on macOS
-        if: runner.os == 'macOS'
+      - name: Get Chrome version on Windows
+        if: runner.os == 'Windows'
+        shell: powershell
         run: |
-          chrome_version=$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" /Applications/Google\ Chrome.app/Contents/Info.plist)
-          if [ -n "$chrome_version" ]; then
-            echo "Google Chrome Version: $chrome_version"
+          Write-Output "--- Checking Google Chrome ---"
+          $chromePath = "$env:PROGRAMFILES\Google\Chrome\Application\chrome.exe"
+          if (-not (Test-Path $chromePath)) {
+              $chromePath = "$env:PROGRAMFILES(x86)\Google\Chrome\Application\chrome.exe"
+          }
+          if (Test-Path $chromePath) {
+              $versionInfo = Get-Item -Path $chromePath
+              Write-Output "Google Chrome Version: $($versionInfo.VersionInfo.ProductVersion)"
+          } else {
+              Write-Warning "Chrome not found on Windows."
+          }
+
+      - name: Get Firefox version on Windows
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          Write-Output "--- Checking Mozilla Firefox ---"
+          $firefoxPath = "$env:PROGRAMFILES\Mozilla Firefox\firefox.exe"
+          if (Test-Path $firefoxPath) {
+              $versionInfo = Get-Item -Path $firefoxPath
+              Write-Output "Mozilla Firefox Version: $($versionInfo.VersionInfo.ProductVersion)"
+          } else {
+              Write-Warning "Firefox not found on Windows."
+          }
+      
+      - name: Get Edge version on Windows
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          Write-Output "--- Checking Microsoft Edge ---"
+          $edgePath = "$env:PROGRAMFILES(x86)\Microsoft\Edge\Application\msedge.exe"
+          if (Test-Path $edgePath) {
+              $versionInfo = Get-Item -Path $edgePath
+              Write-Output "Microsoft Edge Version: $($versionInfo.VersionInfo.ProductVersion)"
+          } else {
+              Write-Warning "Edge not found on Windows."
+          }
+
+      - name: Get all browser versions on macOS
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          echo "--- Checking Google Chrome ---"
+          if [ -d "/Applications/Google Chrome.app" ]; then
+            /usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" "/Applications/Google Chrome.app/Contents/Info.plist"
           else
-            echo "::error::Could not find Chrome version on macOS"
-            exit 1
+            echo "Google Chrome not found on macOS."
           fi
 
+          echo "--- Checking Mozilla Firefox ---"
+          if [ -d "/Applications/Firefox.app" ]; then
+            /Applications/Firefox.app/Contents/MacOS/firefox --version
+          else
+            echo "Mozilla Firefox not found on macOS."
+          fi
+          
+          echo "--- Checking Apple Safari ---"
+          if [ -d "/Applications/Safari.app" ]; then
+            /usr/bin/defaults read /Applications/Safari.app/Contents/Info.plist CFBundleShortVersionString
+          else
+            echo "Apple Safari not found on macOS."
+          fi
+
+      - name: Get all browser versions on Ubuntu
+        if: runner.os == 'ubuntu-latest'
+        shell: bash
+        run: |
+          echo "--- Checking Google Chrome ---"
+          if command -v google-chrome &> /dev/null; then
+            google-chrome --version
+          else
+            echo "Google Chrome not found on Ubuntu."
+          fi
+          
+          echo "--- Checking Mozilla Firefox ---"
+          if command -v firefox &> /dev/null; then
+            firefox --version
+          else
+            echo "Mozilla Firefox not found on Ubuntu."
+          fi
+          
+          echo "--- Checking Microsoft Edge ---"
+          if command -v msedge &> /dev/null; then
+            msedge --version
+          else
+            echo "Microsoft Edge not found on Ubuntu."
+          fi
