@@ -17,47 +17,37 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [windows-latest]
+        os: [ubuntu-latest]
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
-      - name: Check browser versions on Windows
-        shell: powershell
+
+      - name: Check browser versions on Ubuntu
+        shell: bash
         run: |
-          Write-Output "--- Checking Browser Versions on Windows ---"
+          echo "--- Checking Browser Versions on Ubuntu ---"
 
           # Chrome
-          $chromePath = "$env:PROGRAMFILES\Google\Chrome\Application\chrome.exe"
-          if (-not (Test-Path $chromePath)) {
-              $chromePath = "$env:PROGRAMFILES(x86)\Google\Chrome\Application\chrome.exe"
-          }
-          if (Test-Path $chromePath) {
-              $versionInfo = Get-Item -Path $chromePath
-              Write-Output "Google Chrome: $($versionInfo.VersionInfo.ProductVersion)"
-          } else {
-              Write-Warning "Google Chrome not found."
-          }
-
+          if command -v google-chrome &>/dev/null; then
+            google-chrome --version
+          else
+            echo "Google Chrome not found."
+          fi
+          
           # Firefox
-          $firefoxPath = "$env:PROGRAMFILES\Mozilla Firefox\firefox.exe"
-          if (Test-Path $firefoxPath) {
-              $versionInfo = Get-Item -Path $firefoxPath
-              Write-Output "Mozilla Firefox: $($versionInfo.VersionInfo.ProductVersion)"
-          } else {
-              Write-Warning "Mozilla Firefox not found."
-          }
+          if command -v firefox &>/dev/null; then
+            firefox --version
+          else
+            echo "Mozilla Firefox not found."
+          fi
 
-          # Edge
-          $edgePath = "$env:PROGRAMFILES(x86)\Microsoft\Edge\Application\msedge.exe"
-          if (Test-Path $edgePath) {
-              $versionInfo = Get-Item -Path $edgePath
-              Write-Output "Microsoft Edge: $($versionInfo.VersionInfo.ProductVersion)"
-          } else {
-              Write-Warning "Microsoft Edge not found."
-          }
-
-          # Safari (not available on Windows)
-          Write-Output "Apple Safari: Not available on Windows."
-
+          # Edge (may or may not be installed depending on the specific runner image)
+          if command -v msedge &>/dev/null; then
+            msedge --version
+          else
+            echo "Microsoft Edge not found."
+          fi
+          
+          # Safari (not available on Ubuntu)
+          echo "Apple Safari: Not available on Ubuntu."
