@@ -17,14 +17,13 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [windows-latest, macos-latest, ubuntu-latest]
+        os: [windows-latest]
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
       
       - name: Check browser versions on Windows
-        if: runner.os == 'Windows'
         shell: powershell
         run: |
           Write-Output "--- Checking Browser Versions on Windows ---"
@@ -62,72 +61,3 @@ jobs:
           # Safari (not available on Windows)
           Write-Output "Apple Safari: Not available on Windows."
 
-
-      - name: Check browser versions on macOS
-        if: runner.os == 'macOS'
-        shell: bash
-        run: |
-          echo "--- Checking Browser Versions on macOS ---"
-
-          # Chrome
-          if [ -d "/Applications/Google Chrome.app" ]; then
-            chrome_version=$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" "/Applications/Google Chrome.app/Contents/Info.plist")
-            echo "Google Chrome: $chrome_version"
-          else
-            echo "Google Chrome not found."
-          fi
-
-          # Firefox
-          if [ -d "/Applications/Firefox.app" ]; then
-            firefox_version=$(/Applications/Firefox.app/Contents/MacOS/firefox --version)
-            echo "Mozilla Firefox: $firefox_version"
-          else
-            echo "Mozilla Firefox not found."
-          fi
-          
-          # Safari
-          if [ -d "/Applications/Safari.app" ]; then
-            safari_version=$(/usr/bin/defaults read "/Applications/Safari.app/Contents/Info.plist" CFBundleShortVersionString)
-            echo "Apple Safari: $safari_version"
-          else
-            echo "Apple Safari not found."
-          fi
-
-          # Edge (typically not pre-installed but can be)
-          if [ -d "/Applications/Microsoft Edge.app" ]; then
-            edge_version=$(/Applications/Microsoft\ Edge.app/Contents/MacOS/Microsoft\ Edge --version)
-            echo "Microsoft Edge: $edge_version"
-          else
-            echo "Microsoft Edge not found."
-          fi
-
-
-      - name: Check browser versions on Ubuntu
-        if: runner.os == 'ubuntu-latest'
-        shell: bash
-        run: |
-          echo "--- Checking Browser Versions on Ubuntu ---"
-
-          # Chrome
-          if command -v google-chrome &>/dev/null; then
-            google-chrome --version
-          else
-            echo "Google Chrome not found."
-          fi
-          
-          # Firefox
-          if command -v firefox &>/dev/null; then
-            firefox --version
-          else
-            echo "Mozilla Firefox not found."
-          fi
-
-          # Edge (may or may not be installed depending on the specific runner image)
-          if command -v msedge &>/dev/null; then
-            msedge --version
-          else
-            echo "Microsoft Edge not found."
-          fi
-          
-          # Safari (not available on Ubuntu)
-          echo "Apple Safari: Not available on Ubuntu."
