@@ -1,4 +1,4 @@
-name: PR Quality Checks (Ruff + pip-audit)
+name: PR Quality Checks (Ruff + mypy)
 
 on:
     pull_request:
@@ -59,7 +59,7 @@ jobs:
                 run: uv run ruff format --check --diff
 
     mypy:
-        name: Static Type Checking with MyPy
+        name: Static Type Checking (MyPy)
         runs-on: ubuntu-latest
         timeout-minutes: 10
         steps:

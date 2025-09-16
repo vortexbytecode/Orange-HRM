@@ -26,7 +26,7 @@ permissions:
 
 jobs:
     bandit:
-        name: Security Scan with Bandit
+        name: Security Scan (Bandit)
         runs-on: ubuntu-latest
         timeout-minutes: 10
         steps:
@@ -78,7 +78,7 @@ jobs:
                     path: reports/
 
     pip-audit:
-        name: Dependency Vulnerability Scan with Pip-Audit
+        name: Dependency Vulnerability Scan (Pip-Audit)
         runs-on: ubuntu-latest
         timeout-minutes: 10
         steps:
