@@ -1,5 +1,8 @@
 name: Security Scan Workflow
 
+permissions:
+  contents: read
+
 on:
     pull_request:
 
