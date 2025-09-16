@@ -17,37 +17,48 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest]
+        os: [windows-latest]
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Check browser versions on Ubuntu
-        shell: bash
+      - name: Check browser versions on Windows
+        if: runner.os == 'Windows'
+        shell: powershell
         run: |
-          echo "--- Checking Browser Versions on Ubuntu ---"
+          Write-Output "--- Checking Browser Versions on Windows ---"
 
           # Chrome
-          if command -v google-chrome &>/dev/null; then
-            google-chrome --version
-          else
-            echo "Google Chrome not found."
-          fi
-          
-          # Firefox
-          if command -v firefox &>/dev/null; then
-            firefox --version
-          else
-            echo "Mozilla Firefox not found."
-          fi
+          $chromePath = "$env:PROGRAMFILES\Google\Chrome\Application\chrome.exe"
+          if (-not (Test-Path $chromePath)) {
+              $chromePath = "$env:PROGRAMFILES(x86)\Google\Chrome\Application\chrome.exe"
+          }
+          if (Test-Path $chromePath) {
+              $versionInfo = Get-Item -Path $chromePath
+              Write-Output "Google Chrome: $($versionInfo.VersionInfo.ProductVersion)"
+          } else {
+              Write-Warning "Google Chrome not found."
+          }
 
-          # Edge (may or may not be installed depending on the specific runner image)
-          if command -v msedge &>/dev/null; then
-            msedge --version
-          else
-            echo "Microsoft Edge not found."
-          fi
+          # Firefox
+          $firefoxPath = "$env:PROGRAMFILES\Mozilla Firefox\firefox.exe"
+          if (Test-Path $firefoxPath) {
+              $versionInfo = Get-Item -Path $firefoxPath
+              Write-Output "Mozilla Firefox: $($versionInfo.VersionInfo.ProductVersion)"
+          } else {
+              Write-Warning "Mozilla Firefox not found."
+          }
+
+          # Edge (Using a more robust method to find the executable path)
+          Write-Output "--- Checking Microsoft Edge ---"
+          $edgePath = (Get-ItemPropertyValue -LiteralPath "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\msedge.exe" -Name "(default)")
+          if ($edgePath) {
+              $versionInfo = Get-Item -Path $edgePath
+              Write-Output "Microsoft Edge: $($versionInfo.VersionInfo.ProductVersion)"
+          } else {
+              Write-Warning "Microsoft Edge not found via App Paths registry key."
+          }
           
-          # Safari (not available on Ubuntu)
-          echo "Apple Safari: Not available on Ubuntu."
+          # Safari (not available on Windows)
+          Write-Output "Apple Safari: Not available on Windows."
