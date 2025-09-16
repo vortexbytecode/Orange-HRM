@@ -1,7 +1,4 @@
-name: Security Scan Workflow
-
-permissions:
-  contents: read
+name: Security Scan (Bandit + pip-audit)
 
 on:
     pull_request:
@@ -10,14 +7,9 @@ on:
         - cron: '0 1 * * *'  # Runs at 1 AM every day.
 
     workflow_dispatch:
-        inputs:
-            branch:
-                description: 'Branch to run the workflow on'
-                required: false
-                default: 'main'
 
 concurrency:
-    group: security-scan-${{ github.ref }}
+    group: ${{ github.workflow }}-${{ github.ref }}
     cancel-in-progress: true
 
 env:
@@ -26,11 +18,17 @@ env:
   ACTIONS_RUNNER_DEBUG: false
   ACTIONS_STEP_DEBUG: false
 
+permissions:
+    contents: read          # Needed for actions/checkout
+    checks: write             # Needed if the workflow creates or updates check runs (the “checks” UI — annotations, statuses).
+    # pull-requests: write    # Needed to comment on PRs
+    # security-events: write  # Needed to upload SARIF to GitHub Code Scanning
+
 jobs:
     bandit:
         name: Security Scan with Bandit
         runs-on: ubuntu-latest
-        timeout-minutes: 15
+        timeout-minutes: 10
         steps:
             -   name: Checkout code
                 uses: actions/checkout@v4
@@ -67,15 +65,17 @@ jobs:
                 run: uv run bandit -f json -l medium -o reports/bandit_report.json
 
             -   name: Run Bandit Security Scan (high severity + HTML)
-                run: uv run bandit -f html -l all -o reports/bandit_report.html || true
+                run: uv run bandit -f html -l all -o reports/bandit_report.html
 
+            -   name: Run Bandit Security Scan (sarif)
+                run: uv run bandit -f sarif -l all -o reports/bandit_report.sarif
+            
             -   name: Upload Bandit Report
                 if: always()
                 uses: actions/upload-artifact@v4
                 with:
-                    name: bandit-reports
+                    name: bandit-reports(JSON + HTML + SARIF)
                     path: reports/
-
 
     pip-audit:
         name: Dependency Vulnerability Scan with Pip-Audit
@@ -106,7 +106,7 @@ jobs:
                 with:
                     enable-cache: true
                     
-            -   name: Install dependencies (frozen)
+            -   name: Install dependencies (locked)
                 run: uv sync --dev --locked
 
             -   name: Ensure reports dir
@@ -119,5 +119,5 @@ jobs:
                 if: always()
                 uses: actions/upload-artifact@v4
                 with:
-                    name: pip-audit-report
+                    name: pip-audit-report(JSON)
                     path: reports/

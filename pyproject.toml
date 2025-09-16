@@ -16,7 +16,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "bandit[toml]>=1.8.6",
+    "bandit[sarif]>=1.8.6",
     "lxml>=6.0.1",
     "mypy>=1.18.1",
     "pip-audit>=2.9.0",
