@@ -159,8 +159,8 @@ def driver(request: pytest.FixtureRequest) -> Generator[WebDriver, Any]:
         chrome_options.add_argument("--disable-gpu")
 
     # Use a unique user data directory to avoid conflicts
-    user_data_dir = tempfile.TemporaryDirectory(prefix="chrome_user_data_")
-    chrome_options.add_argument(f"--user-data-dir={user_data_dir.name}")
+    user_data_dir = tempfile.mkdtemp()
+    chrome_options.add_argument(f"--user-data-dir={user_data_dir}")
 
     driver = webdriver.Chrome(options=chrome_options)
 

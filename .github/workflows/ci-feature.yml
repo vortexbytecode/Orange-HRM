@@ -65,13 +65,14 @@ jobs:
 
             -   name: Run Smoke Tests (Critical User Journeys)
                 run: |
+                    # Option 3: Generate both HTML and XML reports
                     uv run pytest \
-                        --cov-report=term-missing
-                        --cov-report html=reports/coverage.html \
-                        --cov-report json=reports/coverage.json \
-                        --cov-report markdown-append:$GITHUB_STEP_SUMMARY \
-                        --cov=orange_hrm tests \
-                        --env dev \
+                        --cov-branch \
+                        --cov=src \
+                        --cov-report=html:reports/coverage \
+                        --cov-report=xml:reports/coverage.xml \
+                        --cov-report=term-missing \
+                        --tb=long \
                         --headless
 
             -   name: Upload Smoke Test Report
