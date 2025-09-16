@@ -20,6 +20,7 @@ env:
   PYTHON_VERSION_FILE: .python-version
   ACTIONS_RUNNER_DEBUG: false
   ACTIONS_STEP_DEBUG: false
+  COLUMNS: 120 # Sets the variable for all steps in this job
   ORANGEHRM_USERNAME: ${{ secrets.ORANGEHRM_USERNAME }}
   ORANGEHRM_PASSWORD: ${{ secrets.ORANGEHRM_PASSWORD }}
 
@@ -66,7 +67,7 @@ jobs:
             -   name: Run Smoke Tests (Critical User Journeys)
                 run: |
                     # Option 3: Generate both HTML and XML reports
-                    COLUMNS=120 uv run pytest \
+                    uv run pytest \
                         --cov-branch \
                         --cov=src \
                         --cov-report=html:reports/coverage \
