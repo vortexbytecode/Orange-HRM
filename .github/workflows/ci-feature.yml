@@ -1,64 +1,81 @@
-name: Check All Browser Versions
+# Run Chrome tests on Ubuntu. This is your cost-effective primary test.
+# Run Edge tests on Windows. This covers the dominant browser on the Windows OS.
+# Run Safari tests on macOS. This covers the WebKit engine and native Mac environment. 
+
+
+name: Feature Branch Testing
 
 on:
-  push:
-    branches: 
-      - 'feature/*'
-      - 'bugfix/*'
-  workflow_dispatch:
+    push:
+        branches:
+            - 'feature/**'
+            - 'bugfix/**'
+    workflow_dispatch:
 
 concurrency:
-  group: browser-checks-${{ github.ref }}
-  cancel-in-progress: true
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+env:
+  PYTHON_VERSION_FILE: .python-version
+  ACTIONS_RUNNER_DEBUG: false
+  ACTIONS_STEP_DEBUG: false
+
+permissions:
+  contents: read
+  checks: write
 
 jobs:
-  check-browser-versions:
-    name: Check on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [windows-latest]
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+    smoke-tests:
+        name: Smoke Tests (Chrome Only)
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        steps:
+            -   name: Checkout code
+                uses: actions/checkout@v4
+                with:
+                    fetch-depth: 0
 
-      - name: Check browser versions on Windows
-        if: runner.os == 'Windows'
-        shell: powershell
-        run: |
-          Write-Output "--- Checking Browser Versions on Windows ---"
+            -   name: Set up Python
+                uses: actions/setup-python@v5
+                with:
+                    python-version-file: ${{ env.PYTHON_VERSION_FILE}}
 
-          # Chrome
-          $chromePath = "$env:PROGRAMFILES\Google\Chrome\Application\chrome.exe"
-          if (-not (Test-Path $chromePath)) {
-              $chromePath = "$env:PROGRAMFILES(x86)\Google\Chrome\Application\chrome.exe"
-          }
-          if (Test-Path $chromePath) {
-              $versionInfo = Get-Item -Path $chromePath
-              Write-Output "Google Chrome: $($versionInfo.VersionInfo.ProductVersion)"
-          } else {
-              Write-Warning "Google Chrome not found."
-          }
+            -   name: Restore uv Cache
+                uses: actions/cache@v4
+                with:
+                    path: /tmp/.uv-cache
+                    key: uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+                    restore-keys: |
+                        uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+                        uv-${{ runner.os }}-
 
-          # Firefox
-          $firefoxPath = "$env:PROGRAMFILES\Mozilla Firefox\firefox.exe"
-          if (Test-Path $firefoxPath) {
-              $versionInfo = Get-Item -Path $firefoxPath
-              Write-Output "Mozilla Firefox: $($versionInfo.VersionInfo.ProductVersion)"
-          } else {
-              Write-Warning "Mozilla Firefox not found."
-          }
+            -   name: Install uv (cached)
+                uses: astral-sh/setup-uv@v6
+                with:
+                    enable-cache: true
 
-          # Edge (Using a more robust method to find the executable path)
-          Write-Output "--- Checking Microsoft Edge ---"
-          $edgePath = (Get-ItemPropertyValue -LiteralPath "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\msedge.exe" -Name "(default)")
-          if ($edgePath) {
-              $versionInfo = Get-Item -Path $edgePath
-              Write-Output "Microsoft Edge: $($versionInfo.VersionInfo.ProductVersion)"
-          } else {
-              Write-Warning "Microsoft Edge not found via App Paths registry key."
-          }
-          
-          # Safari (not available on Windows)
-          Write-Output "Apple Safari: Not available on Windows."
+            -   name: Install dependencies (locked)
+                run: uv sync --dev --locked
+
+            -   name: Ensure reports dir
+                run: mkdir -p reports/
+
+            -   name: Run Smoke Tests (Critical User Journeys)
+                run: |
+                    uv run pytest \
+                        --cov-report=term-missing
+                        --cov-report html=reports/coverage.html \
+                        --cov-report json=reports/coverage.json \
+                        --cov-report markdown-append:$GITHUB_STEP_SUMMARY \
+                        --cov=orange_hrm tests \
+                        --env dev \
+                        --headless
+
+            -   name: Upload Smoke Test Report
+                if: always()
+                uses: actions/upload-artifact@v4
+                with:
+                    name: smoke-test-report
+                    path: reports/
+                    retention-days: 7
