@@ -20,6 +20,8 @@ env:
   PYTHON_VERSION_FILE: .python-version
   ACTIONS_RUNNER_DEBUG: false
   ACTIONS_STEP_DEBUG: false
+  ORANGEHRM_USERNAME: ${{ secrets.ORANGEHRM_USERNAME }}
+  ORANGEHRM_PASSWORD: ${{ secrets.ORANGEHRM_PASSWORD }}
 
 permissions:
   contents: read
