@@ -1,0 +1,97 @@
+
+# Correct way to publish allure report
+
+# Step 1: Run your full tests and save results as an artifact on the release branch
+# In your workflow for the release branch, add a step to upload the allure-results directory as an artifact.
+
+# .github/workflows/release-full-test.yml
+
+# ```yml
+# name: Release Full Tests
+
+# on:
+#     push:
+#         branches: ['release/**']
+
+# jobs:
+#     full-test-and-upload-results:
+#         runs-on: ubuntu-latest
+#         steps:
+#             # ... (checkout, setup python, install dependencies) ...
+
+#             - name: Run Full Tests and generate Allure results
+#               run: pytest --alluredir=allure-results
+
+#             - name: Upload Allure results artifact
+#               uses: actions/upload-artifact@v4
+#               with:
+#                 name: allure-report-results
+#                 path: allure-results
+# ```
+
+
+
+
+
+# Step 2: Create a separate workflow to deploy the report on main
+# This workflow will be triggered when the full-test-and-upload-results job in the release branch workflow completes successfully. It will download the artifact, generate the report, and deploy it to GitHub Pages. 
+
+# .github/workflows/deploy-allure-report.yml
+name: Deploy Allure Report on Main
+
+on:
+  workflow_run:
+    workflows: ["Release Full Tests"] # Matches the name of the release branch workflow
+    types:
+      - completed
+    branches:
+      - main # Ensures it runs on the target branch for deployment
+
+jobs:
+  deploy-allure:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    permissions:
+      pages: write
+      id-token: write
+    steps:
+      - name: Checkout main branch
+        uses: actions/checkout@v4
+        with:
+          ref: main # Deploys from the main branch
+      
+      - name: Download Allure results from trigger workflow
+        uses: actions/download-artifact@v4
+        with:
+          name: allure-report-results
+          run-id: ${{ github.event.workflow_run.id }}
+
+      - name: Set up Allure command line
+        # Use an action or manually install as in previous examples
+        run: |
+          # Example using an action, or your manual installation
+          curl -o allure-commandline.zip -L  https://github.com/allure-framework/allure2/releases/download/2.27.0/allure-2.27.0.zip
+          unzip allure-commandline.zip
+          sudo mv allure-2.27.0/bin/allure /usr/local/bin/
+          
+      - name: Generate Allure report from downloaded results
+        run: allure generate allure-results --clean -o allure-report
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: 'allure-report'
+          
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+# How this workflow works
+# Release branch pushes: When code is pushed to your release/** branch, the release-full-test.yml workflow runs all your full tests.
+# Artifact upload: After the tests finish successfully, the allure-results directory is uploaded as an artifact.
+# workflow_run trigger: The deploy-allure-report.yml workflow is triggered by the completion of the Release Full Tests workflow. The branches: main filter ensures this deployment process is tied to the main branch.
+# Download and deploy: The deploy-allure-report.yml workflow downloads the artifact, generates the final Allure report, and deploys it to your public GitHub Pages. 
+# This approach gives you the best of both worlds: fast smoke tests on main for quick validation, thorough full tests on release for comprehensive coverage, and a single, authoritative Allure report on GitHub Pages for recruiters.

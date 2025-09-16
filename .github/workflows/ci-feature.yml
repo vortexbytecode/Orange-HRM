@@ -1,0 +1,80 @@
+name: Feature Branch Testing
+
+on:
+    push:
+        branches:
+            - 'feature/**'
+            - 'bugfix/**'
+    workflow_dispatch:
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+env:
+  PYTHON_VERSION_FILE: .python-version
+  ACTIONS_RUNNER_DEBUG: false
+  ACTIONS_STEP_DEBUG: false
+  COLUMNS: 120 # Set the terminal width for better readability
+  ORANGEHRM_USERNAME: ${{ secrets.ORANGEHRM_USERNAME }}
+  ORANGEHRM_PASSWORD: ${{ secrets.ORANGEHRM_PASSWORD }}
+
+permissions:
+  contents: read
+  checks: write
+
+jobs:
+    smoke-tests:
+        name: Smoke Tests (Chrome Only)
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        steps:
+            -   name: Checkout code
+                uses: actions/checkout@v4
+                with:
+                    fetch-depth: 0
+
+            -   name: Set up Python
+                uses: actions/setup-python@v5
+                with:
+                    python-version-file: ${{ env.PYTHON_VERSION_FILE}}
+
+            -   name: Restore uv Cache
+                uses: actions/cache@v4
+                with:
+                    path: /tmp/.uv-cache
+                    key: uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+                    restore-keys: |
+                        uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+                        uv-${{ runner.os }}-
+
+            -   name: Install uv (cached)
+                uses: astral-sh/setup-uv@v6
+                with:
+                    enable-cache: true
+
+            -   name: Install dependencies (locked)
+                run: uv sync --dev --locked
+
+            -   name: Ensure reports dir
+                run: mkdir -p reports/
+
+            -   name: Run Smoke Tests (Critical User Journeys)
+                run: |
+                    # Option 3: Generate both HTML and XML reports
+                    uv run pytest \
+                        --cov-branch \
+                        --cov=src \
+                        --cov-report=html:reports/coverage \
+                        --cov-report=xml:reports/coverage.xml \
+                        --cov-report=term-missing \
+                        --tb=long \
+                        --headless
+
+            -   name: Upload Smoke Test Report
+                if: always()
+                uses: actions/upload-artifact@v4
+                with:
+                    name: smoke-test-report
+                    path: reports/
+                    retention-days: 7

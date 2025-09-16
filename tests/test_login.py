@@ -64,7 +64,6 @@ def test_login_valid_credentials(
     )
 
 
-@pytest.mark.smoke
 @pytest.mark.login
 @pytest.mark.negative
 @pytest.mark.parametrize(
@@ -115,7 +114,6 @@ def test_login_invalid_credentials(
     logger.info("Successfully verified invalid credentials message visibility")
 
 
-@pytest.mark.smoke
 @pytest.mark.login
 @pytest.mark.negative
 def test_login_empty_credentials(driver: WebDriver, json_env_config: dict) -> None:
@@ -154,7 +152,6 @@ def test_login_empty_credentials(driver: WebDriver, json_env_config: dict) -> No
     logger.info("Successfully verified password validation error visibility")
 
 
-@pytest.mark.smoke
 @pytest.mark.login
 @pytest.mark.negative
 def test_login_empty_username(driver: WebDriver, json_env_config: dict) -> None:
@@ -190,7 +187,6 @@ def test_login_empty_username(driver: WebDriver, json_env_config: dict) -> None:
     logger.info("Successfully verified username validation error visibility")
 
 
-@pytest.mark.smoke
 @pytest.mark.login
 @pytest.mark.negative
 def test_login_empty_password(driver: WebDriver, json_env_config: dict) -> None:
